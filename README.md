@@ -16,15 +16,25 @@ Systemd is an init system and service manager developed for the Linux ecosystem.
 
 ## Preinstalled Systemd services and the systemctl CLI
 
-Systemd runs background processes and one off tasks called units. These can be services 
+Systemd runs background processes and one off tasks called units. These units can be one of several types. See the table below for each unit file type and their function [[3]](https://linuxize.com/cheatsheet/systemd-unit-file/).
 
-Let's first look at what services are running on the system already. For this we will use the `systemctl` CLI
+| Unit file | Unit function                                              |
+|-----------|------------------------------------------------------------|
+| .service  | A process or daemon                                        |
+| .timer    | Schedule that activates another unit                       |
+| .socket   | Listening socket that starts a service on demand           |
+| .target   | Group of units, used as a boot milestone                   |
+| .path     | Watches a file or directory and activates a unit on change |
+| .mount    | Filesystem mount point                                     |
+| .slice    | Resource control group for other units                     |
+
+Let's first look at what units are running on the system already. For this we will use the `systemctl` CLI
 
 ```console
 systemctl list-units
 ```
 
-This shows us all systemd-managed units currently running on the system. Now this can be quite a lot as we now have a list of all currently running device-, mount-, path-, scope-, service-, slice-, socket-, target- and timer-units. To get a sense of only the services, i.e background programs running we instead list only the units of type service with the following command.
+This shows us all systemd-managed units currently running on the system. Now this can be quite a lot as we now have a list of all currently running unit types. To get a sense of only the service units on the system, i.e background programs running we instead list only the units of type service with the following command.
 
 ```console
 systemctl list-units --type service
@@ -75,14 +85,31 @@ Let's look at what information this output gives us.
 
 - The bottom of the output shows the latest logs of the service as long as the command is run as root
 
+## Journald logging and the journalctl CLI
+
+Journald is a part of systemd which manages the internal system log as well as supporting logging for systemd services. This means that most of the logs written by running services/processes are kept by journald and can be managed using the `journalctl` CLI. The broadest use of this command is simply viewing all current logs at once.
+
+```console
+sudo journalctl --follow
+```
+
+This command will show logs written in real time since we supplied the `--follow` (shorthand `-f`) argument. Since we did not supply any specific unit to monitor journalctl shows all the logs on the system written to journald. Now let's look at one specific unit instead.
+
+```console
+sudo journalctl --unit ssh.service
+```
+This shows us a scrollable page of logs related to the sshd service where `--unit ssh.service` is an argument specifying the unit to list the logs of. Now you might notice these logs could be a bit out of date, this is because currently we are viewing logs from the beginning. Usually we are most interrested in what is either being logged right now or has been logged recently. Let's look at a more useful version of this command.
+
+```console
+sudo journalctl -xeu sshd.service --since today
+```
+
+This will show us the most recent logs of the sshd service today. Now let's break down the arguments used here. `-xeu` is actually a combination of the arguments `-x`, `-e` and `-u`. This could also be written as `--catalog --pager-end --unit ssh.service`. While the last argument `--since` lets us view only logs within a certain timeframe, from today in this case.
+
 ## Managing the service of a newly installed program
 
 - Nginx or something
 - Show status, config, enabled, disabled state, stop, start, restart, daemon reload
-
-## Journald logging and the journalctl CLI
-
-- Show log output of an installed service and the different command switches
 
 ## Making our own service
 
@@ -98,3 +125,4 @@ Let's look at what information this output gives us.
 
 - [1] VM setup instructions https://wiki.fribyte.no/docs/instrukser/ny-vm/ (accessed 09.11.2026)
 - [2] Ubuntu Server tutorial https://ubuntu.com/server/docs/tutorial/ (accessed 09.11.2026)
+- [3] systemd Unit File Cheatsheet https://linuxize.com/cheatsheet/systemd-unit-file/ (accessed 10.11.2026)
