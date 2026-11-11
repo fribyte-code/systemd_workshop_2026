@@ -7,16 +7,16 @@ This is a workshop intended to teach the basics of working with systemd on a Lin
 
 ## Setting up a system to complete the workshop
 
-If you are an active member of friByte and have access to our internal infrastructure you are encouraged to create a new VM in Proxmox using the instructions found in our [public wiki [1]](https://wiki.fribyte.no/docs/instrukser/ny-vm/).
+If you are an active member of friByte and have access to our internal infrastructure you are encouraged to create a new VM in Proxmox using the instructions found in our [public wiki [1]](#sources).
 
-Others are also encouraged to participate in the workshop with their own system, either on a virtual machine or bare metal. Instructions can be found in the [Ubuntu documentation [2]](https://ubuntu.com/server/docs/tutorial/).
+Others are also encouraged to participate in the workshop with their own system, either on a virtual machine or bare metal. Instructions can be found in the [Ubuntu documentation [2]](#sources).
 
 ## What is systemd
-Systemd is an init system and service manager developed for the Linux ecosystem. This means that many of the running services and or operational tasks of a Linux system are already or can be managed using systemd. This can also be expanded upon by creating your own custom services that are managed by systemd. Which is quite handy!
+Systemd is an init system and service manager developed for the Linux ecosystem. This means that many of the running services and or operational tasks of a Linux system are already or can be managed using systemd. This can also be expanded upon by creating your own custom services that are managed by systemd. Which is quite handy! Systemd also offers a handful of other components in it's ecosystem that provide system services like logging through journald, system locales through localed, network interfaces through networkd and many other essential services
 
 ## Preinstalled Systemd services and the systemctl CLI
 
-Systemd runs background processes and one off tasks called units. These units can be one of several types. See the table below for each unit file type and their function [[3]](https://linuxize.com/cheatsheet/systemd-unit-file/).
+Systemd runs background processes and one off tasks called units. These units can be one of several types. See the table below for each unit file type and their function [[3]](#sources).
 
 | Unit file | Unit function                                              |
 |-----------|------------------------------------------------------------|
@@ -108,7 +108,37 @@ This will show us the most recent logs of the sshd service today. Now let's brea
 
 ## Managing the service of a newly installed program
 
-- Nginx or something
+Up until now we have looked at services preinstalled on the system, but what if we want to install and run something else that is not already installed on the system. Let's use the Nginx webserver and proxy program as an example. First we want to install nginx from our distribution package repository.
+
+```console
+sudo apt install nginx
+```
+
+Now doing this installs the Nginx executable on the system aswell along with it's configuration files. In addition to this the `nginx-common` sub-package dependency also installs an nginx service unit definition on the system. This file will be located at the location of `/usr/lib/systemd/system/nginx.service` on the system [[4]](#sources). Let's look at the contents of this unit file.
+
+```console
+fribyte@systemd-workshop:~$ cat /usr/lib/systemd/system/nginx.service
+
+[Unit]
+Description=nginx - high performance web server
+Documentation=https://nginx.org/en/docs/
+After=network-online.target remote-fs.target nss-lookup.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+PIDFile=/run/nginx.pid
+Environment="CONFFILE=/etc/nginx/nginx.conf"
+Environment="cmdopts="
+EnvironmentFile=-/etc/default/nginx
+ExecStart=/usr/sbin/nginx -c ${CONFFILE} $cmdopts
+ExecReload=/bin/sh -c "/bin/kill -s HUP $(/bin/cat /run/nginx.pid)"
+ExecStop=/bin/sh -c "/bin/kill -s TERM $(/bin/cat /run/nginx.pid)"
+
+[Install]
+WantedBy=multi-user.target
+```
+
 - Show status, config, enabled, disabled state, stop, start, restart, daemon reload
 
 ## Making our own service
@@ -126,3 +156,4 @@ This will show us the most recent logs of the sshd service today. Now let's brea
 - [1] VM setup instructions https://wiki.fribyte.no/docs/instrukser/ny-vm/ (accessed 09.11.2026)
 - [2] Ubuntu Server tutorial https://ubuntu.com/server/docs/tutorial/ (accessed 09.11.2026)
 - [3] systemd Unit File Cheatsheet https://linuxize.com/cheatsheet/systemd-unit-file/ (accessed 10.11.2026)
+- [4] File list of package nginx-common in resolute of architecture all https://packages.ubuntu.com/resolute/all/nginx-common/filelist (accessed 11.11.2026)
